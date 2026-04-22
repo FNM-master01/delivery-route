@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配達ルート最適化</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --surface3: #2e2e2e;
+  --border: #333;
+  --border2: #444;
+  --text: #f0ede8;
+  --text-sub: #888;
+  --text-dim: #555;
+  --accent: #e8c547;
+  --accent-dim: #2a2410;
+  --accent-text: #c8a820;
+  --green: #4caf7d;
+  --green-dim: #0d2018;
+  --red: #e05555;
+  --r: 8px;
+  --r-lg: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0 0 60px;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 20px 14px;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.logo span { color: var(--accent); }
+.tab-bar {
+  display: flex; gap: 4px; margin-top: 14px;
+  background: var(--surface2); border-radius: var(--r); padding: 4px;
+}
+.tab {
+  flex: 1; padding: 8px 6px; font-size: 12px; font-weight: 600;
+  border: none; border-radius: 6px; background: transparent;
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
+  font-family: inherit;
+}
+.tab.active { background: var(--surface3); color: var(--text); }
+
+/* ── Panels ── */
+.panel { display: none; padding: 16px 16px 0; animation: fadeIn 0.2s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 10px;
+}
+.card-title {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* ── Inputs ── */
+label.field-label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--text-sub); margin-bottom: 5px; letter-spacing: 0.3px;
+}
+input[type="text"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px; font-size: 14px;
+  color: var(--text); font-family: inherit; outline: none;
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus { border-color: var(--accent); }
+input[type="text"]::placeholder { color: var(--text-dim); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border); border-radius: var(--r);
+  padding: 10px 14px; font-size: 13px; font-weight: 600;
+  background: var(--surface2); color: var(--text);
+  cursor: pointer; font-family: inherit; transition: all 0.12s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface3); }
+.btn:active { transform: scale(0.97); }
+.btn-yellow { background: var(--accent); color: #111; border-color: var(--accent); }
+.btn-yellow:hover { background: #f0d060; }
+.btn-green { background: var(--green-dim); color: var(--green); border-color: #1e4a30; }
+.btn-green:hover { background: #112a1c; }
+.btn-red { background: transparent; color: var(--red); border-color: transparent; }
+.btn-red:hover { background: #2a1010; }
+.btn-full { width: 100%; padding: 13px; font-size: 14px; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.row { display: flex; gap: 8px; }
+.row input { flex: 1; }
+
+/* ── Address Book ── */
+.ab-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+.ab-search { flex: 1; }
+.ab-list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+.ab-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px;
+  cursor: pointer; transition: border-color 0.12s;
+}
+.ab-item:hover { border-color: var(--border2); }
+.ab-item.selected { border-color: var(--accent); background: var(--accent-dim); }
+.ab-check {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--border2); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.12s;
+}
+.ab-item.selected .ab-check { background: var(--accent); border-color: var(--accent); }
+.ab-check-mark { color: #111; font-size: 11px; font-weight: 700; display: none; }
+.ab-item.selected .ab-check-mark { display: block; }
+.ab-info { flex: 1; min-width: 0; }
+.ab-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.ab-addr { font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.empty-state {
+  text-align: center; padding: 32px 20px;
+  color: var(--text-dim); font-size: 13px; line-height: 1.7;
+}
+
+/* ── QR ── */
+.qr-wrap {
+  position: relative; border-radius: var(--r-lg); overflow: hidden;
+  background: #000; aspect-ratio: 4/3; max-height: 260px; margin-bottom: 10px;
+}
+#qr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+#qr-canvas { display: none; }
+.qr-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.qr-frame {
+  width: 150px; height: 150px;
+  border: 2px solid rgba(232,197,71,0.8); border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.4);
+}
+.qr-close-btn {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 12px; padding: 6px 12px;
+  background: rgba(0,0,0,0.6); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  cursor: pointer; font-family: inherit;
+}
+#qr-status { font-size: 13px; color: var(--text-sub); text-align: center; min-height: 18px; }
+
+/* ── Route list (selected addresses) ── */
+.selected-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.sel-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px;
+}
+.sel-num {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  background: var(--surface3); border-radius: 50%;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sel-text { flex: 1; font-size: 13px; word-break: break-all; }
+.sel-name { font-size: 12px; color: var(--text-sub); }
+
+/* ── Stats ── */
+.stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.stat {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 12px 8px; text-align: center;
+}
+.stat-label { font-size: 10px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.5px; margin-bottom: 4px; }
+.stat-val { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+/* ── Route result ── */
+.route-result {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 10px;
+}
+.route-stop { display: flex; align-items: center; gap: 10px; }
+.route-badge {
+  font-size: 10px; font-weight: 700; border-radius: 50%;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.badge-depot { background: var(--accent-dim); color: var(--accent); border: 1px solid #443a10; }
+.badge-stop { background: var(--surface3); color: var(--text-sub); }
+.route-addr { font-size: 13px; flex: 1; word-break: break-all; }
+.route-line { margin-left: 13px; width: 1px; height: 10px; background: var(--border); }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--surface3); color: var(--text); border: 1px solid var(--border2);
+  padding: 9px 18px; border-radius: 100px; font-size: 13px; font-weight: 500;
+  opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999;
+}
+
+/* ── Section spacing ── */
+.section-gap { height: 8px; }
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">📦 配達<span>ルート</span>最適化</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('route')">🗺 ルート作成</button>
+    <button class="tab" onclick="switchTab('book')">📋 住所帳</button>
+  </div>
+</div>
+
+<!-- ════════════════ ROUTE TAB ════════════════ -->
+<div class="panel active" id="panel-route">
+
+  <!-- 出発地点 -->
+  <div class="card">
+    <div class="card-title">出発地点</div>
+    <input id="depot" type="text" placeholder="例：大阪府大阪市中央区本町1-1-1" value="大阪府大阪市中央区本町1-1-1">
+  </div>
+
+  <!-- 追加方法 -->
+  <div class="card">
+    <div class="card-title">配達先を追加</div>
+    <div class="row" style="margin-bottom:10px;">
+      <button class="btn btn-green" style="flex:1" onclick="toggleQR()">📷 QRスキャン</button>
+      <button class="btn" style="flex:1" onclick="toggleManual()">✏️ 手動入力</button>
+      <button class="btn" style="flex:1" onclick="switchTab('book'); openBookPicker()">📋 住所帳</button>
+    </div>
+
+    <!-- QR -->
+    <div id="qr-section" style="display:none;">
+      <div class="qr-wrap">
+        <video id="qr-video" playsinline></video>
+        <canvas id="qr-canvas"></canvas>
+        <div class="qr-overlay"><div class="qr-frame"></div></div>
+        <button class="qr-close-btn" onclick="stopQR()">✕ 閉じる</button>
+      </div>
+      <p id="qr-status">QRコードをカメラに向けてください</p>
+      <div class="divider"></div>
+    </div>
+
+    <!-- 手動入力 -->
+    <div id="manual-section" style="display:none;">
+      <div class="row" style="margin-bottom:10px;">
+        <input id="manual-addr" type="text" placeholder="住所 または Google Maps URL...">
+        <button class="btn" onclick="addManual()">追加</button>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <!-- 追加済みリスト -->
+    <div id="selected-list" class="selected-list"></div>
+    <div id="no-selected" style="text-align:center;padding:16px 0;color:var(--text-dim);font-size:13px;">配達先がまだありません</div>
+  </div>
+
+  <!-- 計算ボタン -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-yellow btn-full" onclick="optimize()">最短ルートを計算 →</button>
+    <button class="btn btn-red" onclick="clearRoute()">クリア</button>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-section" style="display:none;">
+    <div class="stats">
+      <div class="stat"><div class="stat-label">配達件数</div><div class="stat-val" id="stat-count">—</div></div>
+      <div class="stat"><div class="stat-label">推定距離</div><div class="stat-val" id="stat-dist">—</div></div>
+      <div class="stat"><div class="stat-label">推定時間</div><div class="stat-val" id="stat-time">—</div></div>
+    </div>
+    <div class="route-result">
+      <div class="card-title" style="margin-bottom:12px;">最適ルート順</div>
+      <div id="route-list"></div>
+    </div>
+    <button class="btn btn-yellow btn-full" onclick="openInMaps()">Google マップで開く ↗</button>
+  </div>
+
+</div>
+
+<!-- ════════════════ ADDRESS BOOK TAB ════════════════ -->
+<div class="panel" id="panel-book">
+
+  <!-- 新規登録 -->
+  <div class="card">
+    <div class="card-title">新規登録</div>
+    <label class="field-label">名称（会社名・お客様名など）</label>
+    <input id="ab-new-name" type="text" placeholder="例：山田商店" style="margin-bottom:8px;">
+    <label class="field-label">住所</label>
+    <div class="row">
+      <input id="ab-new-addr" type="text" placeholder="例：大阪府大阪市北区梅田1-2-3">
+      <button class="btn btn-yellow" onclick="saveToBook()">登録</button>
+    </div>
+  </div>
+
+  <!-- 検索＋一覧 -->
+  <div class="card">
+    <div class="card-title">登録済み一覧</div>
+    <div class="ab-controls">
+      <input class="ab-search" id="ab-search" type="text" placeholder="名称・住所で検索..." oninput="renderBook()">
+      <button class="btn btn-green btn-sm" id="add-selected-btn" onclick="addSelectedToRoute()" style="display:none;">ルートに追加</button>
+    </div>
+    <div class="ab-list" id="ab-list">
+      <div class="empty-state">登録された住所がありません<br>上のフォームから追加してください</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ────────── State ──────────
+let addresses = []; // {name, addr}
+let optimizedRoute = [];
+let addressBook = [];
+let selectedBookIds = new Set();
+let videoStream = null, scanInterval = null;
+let lastScanned = '', lastScannedTime = 0;
+let pickerMode = false;
+
+// ────────── Init ──────────
+function init() {
+  const saved = localStorage.getItem('deliveryAddressBook');
+  if (saved) addressBook = JSON.parse(saved);
+  renderBook();
+  renderSelectedList();
+}
+
+// ────────── Tabs ──────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['route','book'][i] === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ────────── Address extraction ──────────
+function extractAddress(text) {
+  text = text.trim();
+  try {
+    let url;
+    if (text.startsWith('http')) url = new URL(text);
+    else if (text.includes('maps.google.com') || text.includes('google.com/maps')) url = new URL('https://' + text);
+    if (url) {
+      const q = url.searchParams.get('q');
+      if (q) return decodeURIComponent(q);
+      const m = url.pathname.match(/place\/([^\/]+)/);
+      if (m) return decodeURIComponent(m[1]);
+    }
+  } catch(e) {}
+  return text;
+}
+
+// ────────── Route addresses ──────────
+function addToRoute(name, addr) {
+  if (addresses.find(a => a.addr === addr)) { showToast('すでに追加済みです'); return false; }
+  addresses.push({ name, addr });
+  renderSelectedList();
+  return true;
+}
+
+function addManual() {
+  const inp = document.getElementById('manual-addr');
+  const raw = inp.value.trim();
+  if (!raw) return;
+  const addr = extractAddress(raw);
+  if (addToRoute('', addr)) { inp.value = ''; showToast('追加しました'); }
+}
+
+function removeFromRoute(i) {
+  addresses.splice(i, 1);
+  renderSelectedList();
+}
+
+function clearRoute() {
+  addresses = []; optimizedRoute = [];
+  renderSelectedList();
+  document.getElementById('result-section').style.display = 'none';
+}
+
+function renderSelectedList() {
+  const el = document.getElementById('selected-list');
+  const empty = document.getElementById('no-selected');
+  if (!addresses.length) {
+    el.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  el.innerHTML = addresses.map((a, i) => `
+    <div class="sel-item">
+      <span class="sel-num">${i+1}</span>
+      <div style="flex:1;min-width:0;">
+        ${a.name ? `<div class="sel-name">${a.name}</div>` : ''}
+        <div class="sel-text">${a.addr}</div>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeFromRoute(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+// ────────── QR ──────────
+function toggleQR() {
+  const s = document.getElementById('qr-section');
+  if (s.style.display === 'none') startQR(); else stopQR();
+}
+function toggleManual() {
+  const s = document.getElementById('manual-section');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+}
+
+async function startQR() {
+  document.getElementById('qr-section').style.display = 'block';
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width:{ideal:640}, height:{ideal:480} } });
+    const video = document.getElementById('qr-video');
+    video.srcObject = videoStream;
+    await video.play();
+    scanInterval = setInterval(scanFrame, 200);
+    document.getElementById('qr-status').textContent = 'QRコードをカメラに向けてください';
+  } catch(e) {
+    document.getElementById('qr-status').textContent = 'カメラへのアクセスが許可されていません';
+  }
+}
+
+function stopQR() {
+  clearInterval(scanInterval);
+  if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+  videoStream = null;
+  document.getElementById('qr-section').style.display = 'none';
+}
+
+function scanFrame() {
+  const video = document.getElementById('qr-video');
+  const canvas = document.getElementById('qr-canvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  if (!code) return;
+  const now = Date.now();
+  if (code.data === lastScanned && now - lastScannedTime < 2000) return;
+  lastScanned = code.data; lastScannedTime = now;
+  const addr = extractAddress(code.data);
+  const added = addToRoute('', addr);
+  const st = document.getElementById('qr-status');
+  if (added) {
+    st.style.color = 'var(--green)';
+    st.textContent = '✓ 追加: ' + addr;
+    setTimeout(() => { st.style.color = ''; st.textContent = '次のQRコードをスキャンしてください'; }, 1800);
+  } else {
+    st.style.color = 'var(--text-sub)';
+    st.textContent = 'すでに追加済み: ' + addr;
+  }
+}
+
+// ────────── Address Book ──────────
+function saveBook() {
+  localStorage.setItem('deliveryAddressBook', JSON.stringify(addressBook));
+}
+
+function saveToBook() {
+  const name = document.getElementById('ab-new-name').value.trim();
+  const addr = document.getElementById('ab-new-addr').value.trim();
+  if (!addr) { showToast('住所を入力してください'); return; }
+  const id = Date.now().toString();
+  addressBook.push({ id, name: name || addr, addr });
+  saveBook();
+  document.getElementById('ab-new-name').value = '';
+  document.getElementById('ab-new-addr').value = '';
+  renderBook();
+  showToast('登録しました');
+}
+
+function deleteFromBook(id, e) {
+  e.stopPropagation();
+  addressBook = addressBook.filter(a => a.id !== id);
+  selectedBookIds.delete(id);
+  saveBook();
+  renderBook();
+  updateAddBtn();
+}
+
+function toggleBookSelect(id) {
+  if (selectedBookIds.has(id)) selectedBookIds.delete(id);
+  else selectedBookIds.add(id);
+  renderBook();
+  updateAddBtn();
+}
+
+function updateAddBtn() {
+  const btn = document.getElementById('add-selected-btn');
+  btn.style.display = selectedBookIds.size > 0 ? 'inline-flex' : 'none';
+  btn.textContent = `ルートに追加 (${selectedBookIds.size}件)`;
+}
+
+function addSelectedToRoute() {
+  let added = 0;
+  selectedBookIds.forEach(id => {
+    const item = addressBook.find(a => a.id === id);
+    if (item && addToRoute(item.name, item.addr)) added++;
+  });
+  selectedBookIds.clear();
+  renderBook();
+  updateAddBtn();
+  showToast(`${added}件をルートに追加しました`);
+  switchTab('route');
+}
+
+function openBookPicker() {
+  pickerMode = true;
+  renderBook();
+}
+
+function renderBook() {
+  const q = (document.getElementById('ab-search').value || '').trim().toLowerCase();
+  const list = document.getElementById('ab-list');
+  let items = addressBook;
+  if (q) items = items.filter(a => a.name.toLowerCase().includes(q) || a.addr.toLowerCase().includes(q));
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">${addressBook.length === 0 ? '登録された住所がありません<br>上のフォームから追加してください' : '検索結果がありません'}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(a => `
+    <div class="ab-item ${selectedBookIds.has(a.id) ? 'selected' : ''}" onclick="toggleBookSelect('${a.id}')">
+      <div class="ab-check"><span class="ab-check-mark">✓</span></div>
+      <div class="ab-info">
+        <div class="ab-name">${a.name}</div>
+        <div class="ab-addr">${a.addr}</div>
+      </div>
+      <div class="ab-actions">
+        <button class="btn btn-green btn-sm" onclick="quickAddToRoute('${a.id}',event)">+ ルート</button>
+        <button class="btn btn-red btn-sm" onclick="deleteFromBook('${a.id}',event)">削除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function quickAddToRoute(id, e) {
+  e.stopPropagation();
+  const item = addressBook.find(a => a.id === id);
+  if (!item) return;
+  if (addToRoute(item.name, item.addr)) {
+    showToast(`"${item.name}" をルートに追加`);
+    switchTab('route');
+  }
+}
+
+// ────────── Routing Algorithm ──────────
+const BASE = { lat: 34.6937, lon: 135.5023 };
+function pseudoGeo(addr) {
+  let h = 0;
+  for (let c of addr) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return { lat: BASE.lat + ((h%2000)-1000)/20000, lon: BASE.lon + (((h>>8)%2000)-1000)/20000 };
+}
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371, dL=(lat2-lat1)*Math.PI/180, dN=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dN/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function dist(o,pts) {
+  let d=0; for(let i=0;i<o.length-1;i++) d+=haversine(pts[o[i]].lat,pts[o[i]].lon,pts[o[i+1]].lat,pts[o[i+1]].lon); return d;
+}
+function tspNN(pts) {
+  const n=pts.length, vis=new Array(n).fill(false), r=[0]; vis[0]=true;
+  for(let s=1;s<n;s++){
+    let c=r[r.length-1],b=-1,bd=Infinity;
+    for(let j=0;j<n;j++) if(!vis[j]){const d=haversine(pts[c].lat,pts[c].lon,pts[j].lat,pts[j].lon);if(d<bd){bd=d;b=j;}}
+    vis[b]=true;r.push(b);
+  }
+  return r;
+}
+function twoOpt(o,pts){
+  let b=o.slice(),imp=true;
+  while(imp){imp=false;for(let i=1;i<b.length-1;i++)for(let j=i+1;j<b.length;j++){const n=[...b.slice(0,i),...b.slice(i,j+1).reverse(),...b.slice(j+1)];if(dist(n,pts)<dist(b,pts)){b=n;imp=true;}}}
+  return b;
+}
+
+function optimize() {
+  if (!addresses.length) { showToast('配達先を1件以上追加してください'); return; }
+  const depot = document.getElementById('depot').value.trim() || '出発地点';
+  const all = [{ name:'出発地点', addr: depot }, ...addresses];
+  const pts = all.map(a => pseudoGeo(a.addr));
+  let order = tspNN(pts);
+  if (pts.length <= 12) order = twoOpt(order, pts);
+  optimizedRoute = order.map(i => all[i]);
+
+  let d = 0;
+  for(let i=0;i<order.length-1;i++) d+=haversine(pts[order[i]].lat,pts[order[i]].lon,pts[order[i+1]].lat,pts[order[i+1]].lon);
+  d += haversine(pts[order[order.length-1]].lat,pts[order[order.length-1]].lon,pts[0].lat,pts[0].lon);
+
+  document.getElementById('stat-count').textContent = addresses.length + '件';
+  document.getElementById('stat-dist').textContent = Math.round(d) + 'km';
+  document.getElementById('stat-time').textContent = Math.round(d/30*60) + '分';
+
+  const full = [...optimizedRoute, optimizedRoute[0]];
+  document.getElementById('route-list').innerHTML = full.map((a,i) => {
+    const dep = i===0 || i===full.length-1;
+    const lbl = i===0?'発':i===full.length-1?'着':String(i);
+    return `
+      <div class="route-stop">
+        <span class="route-badge ${dep?'badge-depot':'badge-stop'}">${lbl}</span>
+        <div class="route-addr">
+          ${a.name && a.name !== '出発地点' ? `<span style="font-size:11px;color:var(--text-sub);display:block;">${a.name}</span>` : ''}
+          ${a.addr}
+        </div>
+      </div>
+      ${i<full.length-1?'<div class="route-line"></div>':''}
+    `;
+  }).join('');
+
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('result-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function openInMaps() {
+  if (!optimizedRoute.length) return;
+  const enc = optimizedRoute.map(a => encodeURIComponent(a.addr));
+  window.open(`https://www.google.com/maps/dir/${enc.join('/')}`, '_blank');
+}
+
+// ────────── Toast ──────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.opacity='0', 1800);
+}
+
+// ────────── Key bindings ──────────
+document.getElementById('manual-addr').addEventListener('keydown', e => { if(e.key==='Enter') addManual(); });
+document.getElementById('ab-new-addr').addEventListener('keydown', e => { if(e.key==='Enter') saveToBook(); });
+
+init();
+</script>
+</body>
+</html>
