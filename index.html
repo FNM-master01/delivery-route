@@ -362,8 +362,8 @@ input[type="file"]::file-selector-button {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div>
         <label class="field-label">CSVを読み込む</label>
-        <input type="file" id="csv-import" accept=".csv">
-        <p class="csv-hint">形式：名称,住所<br>（1行目はヘッダー可）</p>
+        <input type="file" id="csv-import" accept=".csv,text/csv,text/plain,.txt">
+        <p class="csv-hint">形式：名称,住所<br>（1行目はヘッダー可）<br>UTF-8 / Shift-JIS 対応</p>
       </div>
       <div style="display:flex;flex-direction:column;justify-content:flex-start;gap:8px;padding-top:18px;">
         <button class="btn btn-blue btn-full" onclick="importCSV()">📥 インポート</button>
@@ -777,20 +777,22 @@ function saveEdit() {
 function importCSV() {
   const file = document.getElementById('csv-import').files[0];
   if (!file) { showToast('CSVファイルを選択してください'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    const lines  = e.target.result.split(/\r?\n/).filter(l => l.trim());
+
+  const tryParse = (text) => {
+    // BOM除去（UTF-8 BOM \uFEFF、UTF-16 BOM も対応）
+    text = text.replace(/^\uFEFF/, '').replace(/^\u00EF\u00BB\u00BF/, '');
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
     let imported = 0, skipped = 0;
     lines.forEach((line, idx) => {
-      // ヘッダー行スキップ（1行目が「名称」「name」等の場合）
-      if (idx === 0 && /^(名称|name|氏名|店名)/i.test(line.split(',')[0].trim())) return;
-      const parts = line.split(',');
-      const name  = (parts[0] || '').trim().replace(/^"|"$/g,'');
-      const addr  = (parts[1] || parts[0] || '').trim().replace(/^"|"$/g,'');
+      // ヘッダー行スキップ
+      if (idx === 0 && /^(名称|name|氏名|店名|NameName)/i.test(line.split(',')[0].trim().replace(/^\uFEFF/,''))) return;
+      // カンマ区切り（ダブルクォート対応）
+      const parts = parseCSVLine(line);
+      const name  = (parts[0] || '').trim();
+      const addr  = (parts[1] || parts[0] || '').trim();
       if (!addr) return;
-      // 重複チェック
       if (addressBook.find(a => a.addr === addr)) { skipped++; return; }
-      addressBook.push({ id: Date.now().toString() + imported, name: name || addr, addr });
+      addressBook.push({ id: Date.now().toString() + Math.random().toString(36).slice(2), name: name || addr, addr });
       imported++;
     });
     saveBook();
@@ -799,7 +801,43 @@ function importCSV() {
     document.getElementById('csv-import').value = '';
     showToast(`${imported}件インポート${skipped > 0 ? `（${skipped}件重複スキップ）` : ''}`);
   };
-  reader.readAsText(file, 'UTF-8');
+
+  // まずUTF-8で試みる
+  const readerUTF8 = new FileReader();
+  readerUTF8.onload = e => {
+    const text = e.target.result;
+    // 文字化けしているか簡易チェック（UTF-8失敗時は□や〓が混じる）
+    if (text.includes('�') || (text.includes('縺') || text.includes('髱'))) {
+      // Shift-JISで再読み込み
+      const readerSJIS = new FileReader();
+      readerSJIS.onload = e2 => tryParse(e2.target.result);
+      readerSJIS.onerror = () => showToast('読み込みに失敗しました');
+      readerSJIS.readAsText(file, 'Shift-JIS');
+    } else {
+      tryParse(text);
+    }
+  };
+  readerUTF8.onerror = () => showToast('読み込みに失敗しました');
+  readerUTF8.readAsText(file, 'UTF-8');
+}
+
+// ダブルクォート対応CSVパーサー
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
 }
 
 function exportCSV() {
