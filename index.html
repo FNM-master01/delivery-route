@@ -806,13 +806,17 @@ function exportCSV() {
   if (!addressBook.length) { showToast('住所帳が空です'); return; }
   const header = '名称,住所\n';
   const rows   = addressBook.map(a => `"${a.name.replace(/"/g,'""')}","${a.addr.replace(/"/g,'""')}"`).join('\n');
-  const blob   = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
-  const url    = URL.createObjectURL(blob);
-  const a      = document.createElement('a');
-  a.href       = url;
-  a.download   = '住所帳_' + new Date().toISOString().slice(0,10) + '.csv';
+  const csv    = '\uFEFF' + header + rows;
+  const filename = '住所帳_' + new Date().toISOString().slice(0,10) + '.csv';
+
+  // スマホ対応：data URI方式
+  const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  const a       = document.createElement('a');
+  a.href        = dataUri;
+  a.download    = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
   showToast(`${addressBook.length}件エクスポートしました`);
 }
 
