@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>配達ルート最適化</title>
+<title>はいたつ☆タルるートくん</title>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
 :root {
@@ -22,70 +22,80 @@
   --green: #4caf7d;
   --green-dim: #0d2018;
   --red: #e05555;
+  --blue: #5b9cf6;
+  --blue-dim: #0d1a2e;
   --r: 8px;
   --r-lg: 14px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  padding: 0 0 60px;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; padding: 0 0 60px;
 }
 
-/* ── Header ── */
+/* Header */
 .header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 18px 20px 14px;
-  position: sticky; top: 0; z-index: 100;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 16px 16px 12px; position: sticky; top: 0; z-index: 100;
 }
-.header-top { display: flex; align-items: center; justify-content: space-between; }
-.logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 12px; }
 .logo span { color: var(--accent); }
 .tab-bar {
-  display: flex; gap: 4px; margin-top: 14px;
+  display: flex; gap: 4px;
   background: var(--surface2); border-radius: var(--r); padding: 4px;
 }
 .tab {
-  flex: 1; padding: 8px 6px; font-size: 12px; font-weight: 600;
+  flex: 1; padding: 8px 4px; font-size: 11px; font-weight: 600;
   border: none; border-radius: 6px; background: transparent;
-  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
-  font-family: inherit;
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s; font-family: inherit;
 }
 .tab.active { background: var(--surface3); color: var(--text); }
 
-/* ── Panels ── */
-.panel { display: none; padding: 16px 16px 0; animation: fadeIn 0.2s ease; }
+/* Panels */
+.panel { display: none; padding: 14px 14px 0; animation: fadeIn 0.18s ease; }
 .panel.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
 
-/* ── Cards ── */
+/* Cards */
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 10px;
+  border-radius: var(--r-lg); padding: 14px 14px; margin-bottom: 10px;
 }
 .card-title {
   font-size: 11px; font-weight: 700; color: var(--text-sub);
   letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px;
 }
 
-/* ── Inputs ── */
+/* Depot input box */
+.depot-wrap {
+  background: var(--accent-dim); border: 1px solid #443a10;
+  border-radius: var(--r-lg); padding: 12px 14px; margin-bottom: 10px;
+}
+.depot-wrap .depot-label { font-size: 11px; color: var(--accent-text); font-weight: 700; margin-bottom: 6px; display: block; letter-spacing: 0.3px; }
+.depot-wrap input[type="text"] { background: #1e1a08; border-color: #5a4e1a; color: var(--accent); }
+.depot-wrap input[type="text"]:focus { border-color: var(--accent); }
+
+/* Inputs */
 label.field-label {
   display: block; font-size: 11px; font-weight: 600;
   color: var(--text-sub); margin-bottom: 5px; letter-spacing: 0.3px;
 }
-input[type="text"] {
+input[type="text"], input[type="file"] {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
   border-radius: var(--r); padding: 10px 12px; font-size: 14px;
-  color: var(--text); font-family: inherit; outline: none;
-  transition: border-color 0.15s;
+  color: var(--text); font-family: inherit; outline: none; transition: border-color 0.15s;
 }
 input[type="text"]:focus { border-color: var(--accent); }
 input[type="text"]::placeholder { color: var(--text-dim); }
+input[type="file"] { padding: 8px 10px; font-size: 13px; cursor: pointer; }
+input[type="file"]::file-selector-button {
+  background: var(--surface3); color: var(--text); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  font-family: inherit; margin-right: 10px;
+}
 
-/* ── Buttons ── */
+/* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border: 1px solid var(--border); border-radius: var(--r);
@@ -99,17 +109,75 @@ input[type="text"]::placeholder { color: var(--text-dim); }
 .btn-yellow:hover { background: #f0d060; }
 .btn-green { background: var(--green-dim); color: var(--green); border-color: #1e4a30; }
 .btn-green:hover { background: #112a1c; }
+.btn-blue { background: var(--blue-dim); color: var(--blue); border-color: #1a3060; }
+.btn-blue:hover { background: #0a1525; }
 .btn-red { background: transparent; color: var(--red); border-color: transparent; }
 .btn-red:hover { background: #2a1010; }
 .btn-full { width: 100%; padding: 13px; font-size: 14px; }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-.row { display: flex; gap: 8px; }
+.btn-sm { padding: 6px 10px; font-size: 12px; }
+.row { display: flex; gap: 8px; align-items: flex-start; }
 .row input { flex: 1; }
 
-/* ── Address Book ── */
-.ab-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+/* Add method buttons */
+.method-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+
+/* QR */
+.qr-wrap {
+  position: relative; border-radius: var(--r-lg); overflow: hidden;
+  background: #000; aspect-ratio: 4/3; max-height: 260px; margin-bottom: 8px;
+}
+#qr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+#qr-canvas { display: none; }
+.qr-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+.qr-frame {
+  width: 150px; height: 150px;
+  border: 2px solid rgba(232,197,71,0.85); border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.38);
+  transition: border-color 0.1s;
+}
+.qr-frame.hit { border-color: rgba(76,175,125,0.95); }
+.qr-close-btn {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 12px; padding: 6px 12px;
+  background: rgba(0,0,0,0.6); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  cursor: pointer; font-family: inherit;
+}
+.qr-count {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(0,0,0,0.6); color: var(--accent);
+  border: 1px solid rgba(232,197,71,0.3); border-radius: 6px;
+  font-size: 12px; font-weight: 700; padding: 5px 10px; font-family: inherit;
+}
+#qr-status {
+  font-size: 13px; color: var(--text-sub); text-align: center;
+  min-height: 20px; padding: 4px 0; transition: color 0.15s;
+}
+
+/* Selected list */
+.selected-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.sel-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px;
+}
+.sel-num {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  background: var(--surface3); border-radius: 50%;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sel-info { flex: 1; min-width: 0; }
+.sel-name { font-size: 11px; color: var(--text-sub); margin-bottom: 1px; }
+.sel-text { font-size: 13px; word-break: break-all; }
+
+/* Address book list */
+.ab-controls { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
 .ab-search { flex: 1; }
-.ab-list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+.ab-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; }
 .ab-item {
   display: flex; align-items: center; gap: 10px;
   background: var(--surface2); border: 1px solid var(--border);
@@ -132,52 +200,11 @@ input[type="text"]::placeholder { color: var(--text-dim); }
 .ab-addr { font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ab-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .empty-state {
-  text-align: center; padding: 32px 20px;
-  color: var(--text-dim); font-size: 13px; line-height: 1.7;
+  text-align: center; padding: 28px 20px;
+  color: var(--text-dim); font-size: 13px; line-height: 1.8;
 }
 
-/* ── QR ── */
-.qr-wrap {
-  position: relative; border-radius: var(--r-lg); overflow: hidden;
-  background: #000; aspect-ratio: 4/3; max-height: 260px; margin-bottom: 10px;
-}
-#qr-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-#qr-canvas { display: none; }
-.qr-overlay {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center; pointer-events: none;
-}
-.qr-frame {
-  width: 150px; height: 150px;
-  border: 2px solid rgba(232,197,71,0.8); border-radius: 12px;
-  box-shadow: 0 0 0 2000px rgba(0,0,0,0.4);
-}
-.qr-close-btn {
-  position: absolute; top: 10px; right: 10px;
-  font-size: 12px; padding: 6px 12px;
-  background: rgba(0,0,0,0.6); color: #fff;
-  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-  cursor: pointer; font-family: inherit;
-}
-#qr-status { font-size: 13px; color: var(--text-sub); text-align: center; min-height: 18px; }
-
-/* ── Route list (selected addresses) ── */
-.selected-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.sel-item {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 10px 12px;
-}
-.sel-num {
-  font-size: 11px; font-weight: 700; color: var(--text-sub);
-  background: var(--surface3); border-radius: 50%;
-  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.sel-text { flex: 1; font-size: 13px; word-break: break-all; }
-.sel-name { font-size: 12px; color: var(--text-sub); }
-
-/* ── Stats ── */
+/* Stats */
 .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
 .stat {
   background: var(--surface2); border: 1px solid var(--border);
@@ -186,10 +213,10 @@ input[type="text"]::placeholder { color: var(--text-dim); }
 .stat-label { font-size: 10px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.5px; margin-bottom: 4px; }
 .stat-val { font-size: 22px; font-weight: 700; color: var(--accent); }
 
-/* ── Route result ── */
+/* Route result */
 .route-result {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 10px;
+  border-radius: var(--r-lg); padding: 14px 14px; margin-bottom: 10px;
 }
 .route-stop { display: flex; align-items: center; gap: 10px; }
 .route-badge {
@@ -198,66 +225,78 @@ input[type="text"]::placeholder { color: var(--text-dim); }
   flex-shrink: 0;
 }
 .badge-depot { background: var(--accent-dim); color: var(--accent); border: 1px solid #443a10; }
-.badge-stop { background: var(--surface3); color: var(--text-sub); }
-.route-addr { font-size: 13px; flex: 1; word-break: break-all; }
-.route-line { margin-left: 13px; width: 1px; height: 10px; background: var(--border); }
+.badge-stop  { background: var(--surface3); color: var(--text-sub); }
+.route-addr  { font-size: 13px; flex: 1; word-break: break-all; }
+.route-line  { margin-left: 13px; width: 1px; height: 10px; background: var(--border); }
 
-/* ── Toast ── */
+/* CSV section */
+.csv-section { margin-top: 10px; }
+.csv-hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.6; }
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+/* Edit modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 200;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r-lg); padding: 20px; width: 100%; max-width: 400px;
+}
+.modal-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+
+/* Toast */
 #toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
   background: var(--surface3); color: var(--text); border: 1px solid var(--border2);
   padding: 9px 18px; border-radius: 100px; font-size: 13px; font-weight: 500;
   opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999;
 }
-
-/* ── Section spacing ── */
-.section-gap { height: 8px; }
-.divider { height: 1px; background: var(--border); margin: 12px 0; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="header-top">
-    <div class="logo">📦 配達<span>ルート</span>最適化</div>
-  </div>
+  <div class="logo">📦 はいたつ<span>☆タルるート</span>くん</div>
   <div class="tab-bar">
     <button class="tab active" onclick="switchTab('route')">🗺 ルート作成</button>
-    <button class="tab" onclick="switchTab('book')">📋 住所帳</button>
+    <button class="tab" onclick="switchTab('settings')">⚙️ 住所帳 設定</button>
   </div>
 </div>
 
-<!-- ════════════════ ROUTE TAB ════════════════ -->
+<!-- ══════════ TAB: ルート作成 ══════════ -->
 <div class="panel active" id="panel-route">
 
-  <!-- 出発地点 -->
-  <div class="card">
-    <div class="card-title">出発地点</div>
-    <input id="depot" type="text" placeholder="例：大阪府大阪市中央区本町1-1-1" value="大阪府大阪市中央区本町1-1-1">
+  <div class="depot-wrap">
+    <span class="depot-label">出発地点</span>
+    <input id="depot" type="text" value="大阪府吹田市片山町３－３２－３" placeholder="出発地点の住所を入力...">
   </div>
 
-  <!-- 追加方法 -->
   <div class="card">
     <div class="card-title">配達先を追加</div>
-    <div class="row" style="margin-bottom:10px;">
-      <button class="btn btn-green" style="flex:1" onclick="toggleQR()">📷 QRスキャン</button>
-      <button class="btn" style="flex:1" onclick="toggleManual()">✏️ 手動入力</button>
-      <button class="btn" style="flex:1" onclick="switchTab('book'); openBookPicker()">📋 住所帳</button>
+    <div class="method-grid">
+      <button class="btn btn-green" onclick="toggleQR()">📷 QR</button>
+      <button class="btn" onclick="toggleManual()">✏️ 手動</button>
+      <button class="btn btn-blue" onclick="toggleBookPicker()">📋 住所帳</button>
     </div>
 
-    <!-- QR -->
+    <!-- QR scanner -->
     <div id="qr-section" style="display:none;">
       <div class="qr-wrap">
         <video id="qr-video" playsinline></video>
         <canvas id="qr-canvas"></canvas>
-        <div class="qr-overlay"><div class="qr-frame"></div></div>
+        <div class="qr-overlay"><div class="qr-frame" id="qr-frame"></div></div>
         <button class="qr-close-btn" onclick="stopQR()">✕ 閉じる</button>
+        <div class="qr-count" id="qr-count">0件</div>
       </div>
       <p id="qr-status">QRコードをカメラに向けてください</p>
       <div class="divider"></div>
     </div>
 
-    <!-- 手動入力 -->
+    <!-- Manual input -->
     <div id="manual-section" style="display:none;">
       <div class="row" style="margin-bottom:10px;">
         <input id="manual-addr" type="text" placeholder="住所 または Google Maps URL...">
@@ -266,18 +305,28 @@ input[type="text"]::placeholder { color: var(--text-dim); }
       <div class="divider"></div>
     </div>
 
-    <!-- 追加済みリスト -->
+    <!-- Inline address book picker -->
+    <div id="book-section" style="display:none;">
+      <div class="ab-controls">
+        <input class="ab-search" id="ab-search" type="text" placeholder="名称・住所で検索..." oninput="renderBook()">
+        <button class="btn btn-yellow btn-sm" id="add-selected-btn" onclick="addSelectedToRoute()" style="display:none;">追加</button>
+      </div>
+      <div class="ab-list" id="ab-list" style="max-height:260px;">
+        <div class="empty-state">住所帳が空です<br>「住所帳 設定」タブから登録してください</div>
+      </div>
+      <div class="divider"></div>
+    </div>
+
+    <!-- Selected addresses -->
     <div id="selected-list" class="selected-list"></div>
     <div id="no-selected" style="text-align:center;padding:16px 0;color:var(--text-dim);font-size:13px;">配達先がまだありません</div>
   </div>
 
-  <!-- 計算ボタン -->
   <div style="display:flex;gap:8px;margin-bottom:10px;">
     <button class="btn btn-yellow btn-full" onclick="optimize()">最短ルートを計算 →</button>
     <button class="btn btn-red" onclick="clearRoute()">クリア</button>
   </div>
 
-  <!-- 結果 -->
   <div id="result-section" style="display:none;">
     <div class="stats">
       <div class="stat"><div class="stat-label">配達件数</div><div class="stat-val" id="stat-count">—</div></div>
@@ -290,16 +339,15 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     </div>
     <button class="btn btn-yellow btn-full" onclick="openInMaps()">Google マップで開く ↗</button>
   </div>
-
 </div>
 
-<!-- ════════════════ ADDRESS BOOK TAB ════════════════ -->
-<div class="panel" id="panel-book">
+<!-- ══════════ TAB: 住所帳 設定 ══════════ -->
+<div class="panel" id="panel-settings">
 
   <!-- 新規登録 -->
   <div class="card">
     <div class="card-title">新規登録</div>
-    <label class="field-label">名称（会社名・お客様名など）</label>
+    <label class="field-label">名称</label>
     <input id="ab-new-name" type="text" placeholder="例：山田商店" style="margin-bottom:8px;">
     <label class="field-label">住所</label>
     <div class="row">
@@ -308,48 +356,103 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     </div>
   </div>
 
-  <!-- 検索＋一覧 -->
+  <!-- CSV インポート／エクスポート -->
   <div class="card">
-    <div class="card-title">登録済み一覧</div>
-    <div class="ab-controls">
-      <input class="ab-search" id="ab-search" type="text" placeholder="名称・住所で検索..." oninput="renderBook()">
-      <button class="btn btn-green btn-sm" id="add-selected-btn" onclick="addSelectedToRoute()" style="display:none;">ルートに追加</button>
-    </div>
-    <div class="ab-list" id="ab-list">
-      <div class="empty-state">登録された住所がありません<br>上のフォームから追加してください</div>
+    <div class="card-title">CSV インポート／エクスポート</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <label class="field-label">CSVを読み込む</label>
+        <input type="file" id="csv-import" accept=".csv">
+        <p class="csv-hint">形式：名称,住所<br>（1行目はヘッダー可）</p>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-start;gap:8px;padding-top:18px;">
+        <button class="btn btn-blue btn-full" onclick="importCSV()">📥 インポート</button>
+        <button class="btn btn-full" onclick="exportCSV()">📤 エクスポート</button>
+      </div>
     </div>
   </div>
 
+  <!-- 登録済み一覧（編集・削除） -->
+  <div class="card">
+    <div class="card-title">登録済み一覧</div>
+    <input type="text" id="settings-search" placeholder="検索..." style="margin-bottom:10px;" oninput="renderSettingsList()">
+    <div class="ab-list" id="settings-list">
+      <div class="empty-state">登録された住所がありません</div>
+    </div>
+    <div style="margin-top:10px;text-align:right;">
+      <button class="btn btn-red btn-sm" onclick="clearAllBook()">全件削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">住所を編集</div>
+    <input type="hidden" id="edit-id">
+    <label class="field-label">名称</label>
+    <input id="edit-name" type="text" style="margin-bottom:10px;">
+    <label class="field-label">住所</label>
+    <input id="edit-addr" type="text">
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-yellow btn-sm" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ────────── State ──────────
-let addresses = []; // {name, addr}
-let optimizedRoute = [];
-let addressBook = [];
-let selectedBookIds = new Set();
-let videoStream = null, scanInterval = null;
-let lastScanned = '', lastScannedTime = 0;
-let pickerMode = false;
+// ────── 定数 ──────
+const DEPOT = '大阪府吹田市片山町３－３２－３';
 
-// ────────── Init ──────────
+// ────── State ──────
+let addresses      = [];
+let optimizedRoute = [];
+let addressBook    = [];
+let selectedBookIds = new Set();
+let videoStream    = null;
+let scanInterval   = null;
+let lastScanned    = '';
+let lastScannedTime = 0;
+let scanning       = false;
+
+// ────── Init ──────
 function init() {
-  const saved = localStorage.getItem('deliveryAddressBook');
-  if (saved) addressBook = JSON.parse(saved);
+  const saved = localStorage.getItem('deliveryAddressBook_v2');
+  if (saved) {
+    try { addressBook = JSON.parse(saved); } catch(e) { addressBook = []; }
+  }
   renderBook();
+  renderSettingsList();
   renderSelectedList();
+  document.getElementById('csv-import').addEventListener('change', () => {});
 }
 
-// ────────── Tabs ──────────
+// ────── Tabs ──────
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['route','book'][i] === tab));
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['route','settings'][i] === tab);
+  });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
 }
 
-// ────────── Address extraction ──────────
+// ────── Inline book picker toggle ──────
+function toggleBookPicker() {
+  const s = document.getElementById('book-section');
+  const isOpen = s.style.display !== 'none';
+  if (!isOpen) {
+    document.getElementById('qr-section').style.display     = 'none';
+    document.getElementById('manual-section').style.display = 'none';
+    stopQR();
+  }
+  s.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) document.getElementById('ab-search').focus();
+}
+
+// ────── Address extraction ──────
 function extractAddress(text) {
   text = text.trim();
   try {
@@ -366,9 +469,9 @@ function extractAddress(text) {
   return text;
 }
 
-// ────────── Route addresses ──────────
+// ────── Route addresses ──────
 function addToRoute(name, addr) {
-  if (addresses.find(a => a.addr === addr)) { showToast('すでに追加済みです'); return false; }
+  if (addresses.find(a => a.addr === addr)) return false;
   addresses.push({ name, addr });
   renderSelectedList();
   return true;
@@ -380,6 +483,7 @@ function addManual() {
   if (!raw) return;
   const addr = extractAddress(raw);
   if (addToRoute('', addr)) { inp.value = ''; showToast('追加しました'); }
+  else showToast('すでに追加済みです');
 }
 
 function removeFromRoute(i) {
@@ -394,145 +498,131 @@ function clearRoute() {
 }
 
 function renderSelectedList() {
-  const el = document.getElementById('selected-list');
+  const el    = document.getElementById('selected-list');
   const empty = document.getElementById('no-selected');
-  if (!addresses.length) {
-    el.innerHTML = ''; empty.style.display = 'block'; return;
-  }
+  if (!addresses.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   el.innerHTML = addresses.map((a, i) => `
     <div class="sel-item">
       <span class="sel-num">${i+1}</span>
-      <div style="flex:1;min-width:0;">
+      <div class="sel-info">
         ${a.name ? `<div class="sel-name">${a.name}</div>` : ''}
         <div class="sel-text">${a.addr}</div>
       </div>
       <button class="btn btn-red btn-sm" onclick="removeFromRoute(${i})">✕</button>
     </div>
   `).join('');
+  // QRカウント更新
+  document.getElementById('qr-count').textContent = addresses.length + '件';
 }
 
-// ────────── QR ──────────
-function toggleQR() {
-  const s = document.getElementById('qr-section');
-  if (s.style.display === 'none') startQR(); else stopQR();
-}
+// ────── Manual / QR toggles ──────
 function toggleManual() {
   const s = document.getElementById('manual-section');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+  const opening = s.style.display === 'none';
+  if (opening) {
+    document.getElementById('qr-section').style.display   = 'none';
+    document.getElementById('book-section').style.display = 'none';
+    stopQR();
+  }
+  s.style.display = opening ? 'block' : 'none';
 }
 
+function toggleQR() {
+  const s = document.getElementById('qr-section');
+  if (s.style.display === 'none') {
+    document.getElementById('manual-section').style.display = 'none';
+    document.getElementById('book-section').style.display   = 'none';
+    startQR();
+  } else {
+    stopQR();
+  }
+}
+
+// ────── QR Scanner（ラグ改善版） ──────
 async function startQR() {
   document.getElementById('qr-section').style.display = 'block';
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width:{ideal:640}, height:{ideal:480} } });
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
     const video = document.getElementById('qr-video');
     video.srcObject = videoStream;
-    await video.play();
-    scanInterval = setInterval(scanFrame, 200);
-    document.getElementById('qr-status').textContent = 'QRコードをカメラに向けてください';
+    video.play();
+    scanning = true;
+    requestAnimationFrame(scanLoop);   // setIntervalよりrAFで滑らか
+    setStatus('QRコードをカメラに向けてください', '');
   } catch(e) {
-    document.getElementById('qr-status').textContent = 'カメラへのアクセスが許可されていません';
+    setStatus('カメラへのアクセスが許可されていません', 'var(--red)');
   }
 }
 
 function stopQR() {
-  clearInterval(scanInterval);
+  scanning = false;
   if (videoStream) videoStream.getTracks().forEach(t => t.stop());
   videoStream = null;
   document.getElementById('qr-section').style.display = 'none';
 }
 
-function scanFrame() {
-  const video = document.getElementById('qr-video');
+// requestAnimationFrame ループ — フレームごとにスキャン
+function scanLoop() {
+  if (!scanning) return;
+  const video  = document.getElementById('qr-video');
   const canvas = document.getElementById('qr-canvas');
-  if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-  if (!code) return;
-  const now = Date.now();
-  if (code.data === lastScanned && now - lastScannedTime < 2000) return;
-  lastScanned = code.data; lastScannedTime = now;
-  const addr = extractAddress(code.data);
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imgData.data, imgData.width, imgData.height, {
+      inversionAttempts: 'dontInvert'  // 処理量を減らす
+    });
+    if (code) {
+      const now = Date.now();
+      // 同じQRは1秒間無視（以前は2秒 → 短縮してレスポンス向上）
+      if (!(code.data === lastScanned && now - lastScannedTime < 1000)) {
+        lastScanned     = code.data;
+        lastScannedTime = now;
+        handleQRCode(code.data);
+      }
+    }
+  }
+  requestAnimationFrame(scanLoop);
+}
+
+function handleQRCode(data) {
+  const addr  = extractAddress(data);
   const added = addToRoute('', addr);
-  const st = document.getElementById('qr-status');
+  const frame = document.getElementById('qr-frame');
   if (added) {
-    st.style.color = 'var(--green)';
-    st.textContent = '✓ 追加: ' + addr;
-    setTimeout(() => { st.style.color = ''; st.textContent = '次のQRコードをスキャンしてください'; }, 1800);
+    frame.classList.add('hit');
+    setStatus('✓ ' + addr, 'var(--green)');
+    setTimeout(() => {
+      frame.classList.remove('hit');
+      setStatus('次のQRコードをスキャンしてください', '');
+    }, 600);          // 表示時間を600msに短縮（以前1800ms）
   } else {
-    st.style.color = 'var(--text-sub)';
-    st.textContent = 'すでに追加済み: ' + addr;
+    setStatus('追加済み: ' + addr, 'var(--text-sub)');
   }
 }
 
-// ────────── Address Book ──────────
-function saveBook() {
-  localStorage.setItem('deliveryAddressBook', JSON.stringify(addressBook));
+function setStatus(msg, color) {
+  const el = document.getElementById('qr-status');
+  el.textContent  = msg;
+  el.style.color  = color || 'var(--text-sub)';
 }
 
-function saveToBook() {
-  const name = document.getElementById('ab-new-name').value.trim();
-  const addr = document.getElementById('ab-new-addr').value.trim();
-  if (!addr) { showToast('住所を入力してください'); return; }
-  const id = Date.now().toString();
-  addressBook.push({ id, name: name || addr, addr });
-  saveBook();
-  document.getElementById('ab-new-name').value = '';
-  document.getElementById('ab-new-addr').value = '';
-  renderBook();
-  showToast('登録しました');
-}
-
-function deleteFromBook(id, e) {
-  e.stopPropagation();
-  addressBook = addressBook.filter(a => a.id !== id);
-  selectedBookIds.delete(id);
-  saveBook();
-  renderBook();
-  updateAddBtn();
-}
-
-function toggleBookSelect(id) {
-  if (selectedBookIds.has(id)) selectedBookIds.delete(id);
-  else selectedBookIds.add(id);
-  renderBook();
-  updateAddBtn();
-}
-
-function updateAddBtn() {
-  const btn = document.getElementById('add-selected-btn');
-  btn.style.display = selectedBookIds.size > 0 ? 'inline-flex' : 'none';
-  btn.textContent = `ルートに追加 (${selectedBookIds.size}件)`;
-}
-
-function addSelectedToRoute() {
-  let added = 0;
-  selectedBookIds.forEach(id => {
-    const item = addressBook.find(a => a.id === id);
-    if (item && addToRoute(item.name, item.addr)) added++;
-  });
-  selectedBookIds.clear();
-  renderBook();
-  updateAddBtn();
-  showToast(`${added}件をルートに追加しました`);
-  switchTab('route');
-}
-
-function openBookPicker() {
-  pickerMode = true;
-  renderBook();
-}
-
+// ────── Address Book（選択タブ） ──────
 function renderBook() {
-  const q = (document.getElementById('ab-search').value || '').trim().toLowerCase();
+  const q    = (document.getElementById('ab-search').value || '').trim().toLowerCase();
   const list = document.getElementById('ab-list');
-  let items = addressBook;
+  let items  = addressBook;
   if (q) items = items.filter(a => a.name.toLowerCase().includes(q) || a.addr.toLowerCase().includes(q));
   if (!items.length) {
-    list.innerHTML = `<div class="empty-state">${addressBook.length === 0 ? '登録された住所がありません<br>上のフォームから追加してください' : '検索結果がありません'}</div>`;
+    list.innerHTML = `<div class="empty-state">${addressBook.length === 0
+      ? '住所帳が空です<br>「住所帳 設定」タブから登録してください'
+      : '検索結果がありません'}</div>`;
     return;
   }
   list.innerHTML = items.map(a => `
@@ -543,11 +633,39 @@ function renderBook() {
         <div class="ab-addr">${a.addr}</div>
       </div>
       <div class="ab-actions">
-        <button class="btn btn-green btn-sm" onclick="quickAddToRoute('${a.id}',event)">+ ルート</button>
-        <button class="btn btn-red btn-sm" onclick="deleteFromBook('${a.id}',event)">削除</button>
+        <button class="btn btn-green btn-sm" onclick="quickAddToRoute('${a.id}',event)">+ 追加</button>
       </div>
     </div>
   `).join('');
+  updateAddBtn();
+}
+
+function toggleBookSelect(id) {
+  if (selectedBookIds.has(id)) selectedBookIds.delete(id);
+  else selectedBookIds.add(id);
+  renderBook();
+}
+
+function updateAddBtn() {
+  const btn = document.getElementById('add-selected-btn');
+  if (selectedBookIds.size > 0) {
+    btn.style.display  = 'inline-flex';
+    btn.textContent    = `${selectedBookIds.size}件をルートに追加`;
+  } else {
+    btn.style.display  = 'none';
+  }
+}
+
+function addSelectedToRoute() {
+  let added = 0;
+  selectedBookIds.forEach(id => {
+    const item = addressBook.find(a => a.id === id);
+    if (item && addToRoute(item.name, item.addr)) added++;
+  });
+  selectedBookIds.clear();
+  renderBook();
+  document.getElementById('book-section').style.display = 'none';
+  showToast(`${added}件をルートに追加しました`);
 }
 
 function quickAddToRoute(id, e) {
@@ -556,12 +674,150 @@ function quickAddToRoute(id, e) {
   if (!item) return;
   if (addToRoute(item.name, item.addr)) {
     showToast(`"${item.name}" をルートに追加`);
-    switchTab('route');
+    document.getElementById('book-section').style.display = 'none';
+    selectedBookIds.clear();
+    renderBook();
+  } else {
+    showToast('すでに追加済みです');
   }
 }
 
-// ────────── Routing Algorithm ──────────
-const BASE = { lat: 34.6937, lon: 135.5023 };
+// ────── Address Book（設定タブ） ──────
+function saveBook() {
+  localStorage.setItem('deliveryAddressBook_v2', JSON.stringify(addressBook));
+}
+
+function saveToBook() {
+  const name = document.getElementById('ab-new-name').value.trim();
+  const addr = document.getElementById('ab-new-addr').value.trim();
+  if (!addr) { showToast('住所を入力してください'); return; }
+  addressBook.push({ id: Date.now().toString(), name: name || addr, addr });
+  saveBook();
+  document.getElementById('ab-new-name').value = '';
+  document.getElementById('ab-new-addr').value = '';
+  renderBook();
+  renderSettingsList();
+  showToast('登録しました');
+}
+
+function renderSettingsList() {
+  const q    = (document.getElementById('settings-search').value || '').trim().toLowerCase();
+  const list = document.getElementById('settings-list');
+  let items  = addressBook;
+  if (q) items = items.filter(a => a.name.toLowerCase().includes(q) || a.addr.toLowerCase().includes(q));
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">${addressBook.length === 0
+      ? '登録された住所がありません<br>上のフォームから追加してください'
+      : '検索結果がありません'}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(a => `
+    <div class="ab-item" style="cursor:default;">
+      <div class="ab-info">
+        <div class="ab-name">${a.name}</div>
+        <div class="ab-addr">${a.addr}</div>
+      </div>
+      <div class="ab-actions">
+        <button class="btn btn-sm" onclick="openEditModal('${a.id}')">編集</button>
+        <button class="btn btn-red btn-sm" onclick="deleteFromBook('${a.id}')">削除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteFromBook(id) {
+  if (!confirm('この住所を削除しますか？')) return;
+  addressBook = addressBook.filter(a => a.id !== id);
+  selectedBookIds.delete(id);
+  saveBook();
+  renderBook();
+  renderSettingsList();
+  showToast('削除しました');
+}
+
+function clearAllBook() {
+  if (!confirm(`住所帳を全件（${addressBook.length}件）削除しますか？`)) return;
+  addressBook = [];
+  selectedBookIds.clear();
+  saveBook();
+  renderBook();
+  renderSettingsList();
+  showToast('全件削除しました');
+}
+
+// ────── Edit Modal ──────
+function openEditModal(id) {
+  const item = addressBook.find(a => a.id === id);
+  if (!item) return;
+  document.getElementById('edit-id').value   = id;
+  document.getElementById('edit-name').value = item.name;
+  document.getElementById('edit-addr').value = item.addr;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+function saveEdit() {
+  const id   = document.getElementById('edit-id').value;
+  const name = document.getElementById('edit-name').value.trim();
+  const addr = document.getElementById('edit-addr').value.trim();
+  if (!addr) { showToast('住所を入力してください'); return; }
+  const item = addressBook.find(a => a.id === id);
+  if (item) { item.name = name || addr; item.addr = addr; }
+  saveBook();
+  renderBook();
+  renderSettingsList();
+  closeEditModal();
+  showToast('保存しました');
+}
+
+// ────── CSV ──────
+function importCSV() {
+  const file = document.getElementById('csv-import').files[0];
+  if (!file) { showToast('CSVファイルを選択してください'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines  = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    let imported = 0, skipped = 0;
+    lines.forEach((line, idx) => {
+      // ヘッダー行スキップ（1行目が「名称」「name」等の場合）
+      if (idx === 0 && /^(名称|name|氏名|店名)/i.test(line.split(',')[0].trim())) return;
+      const parts = line.split(',');
+      const name  = (parts[0] || '').trim().replace(/^"|"$/g,'');
+      const addr  = (parts[1] || parts[0] || '').trim().replace(/^"|"$/g,'');
+      if (!addr) return;
+      // 重複チェック
+      if (addressBook.find(a => a.addr === addr)) { skipped++; return; }
+      addressBook.push({ id: Date.now().toString() + imported, name: name || addr, addr });
+      imported++;
+    });
+    saveBook();
+    renderBook();
+    renderSettingsList();
+    document.getElementById('csv-import').value = '';
+    showToast(`${imported}件インポート${skipped > 0 ? `（${skipped}件重複スキップ）` : ''}`);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function exportCSV() {
+  if (!addressBook.length) { showToast('住所帳が空です'); return; }
+  const header = '名称,住所\n';
+  const rows   = addressBook.map(a => `"${a.name.replace(/"/g,'""')}","${a.addr.replace(/"/g,'""')}"`).join('\n');
+  const blob   = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href       = url;
+  a.download   = '住所帳_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`${addressBook.length}件エクスポートしました`);
+}
+
+// ────── Routing ──────
+const BASE = { lat: 34.7651, lon: 135.5174 }; // 吹田市片山町付近
 function pseudoGeo(addr) {
   let h = 0;
   for (let c of addr) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -572,7 +828,7 @@ function haversine(lat1,lon1,lat2,lon2) {
   const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dN/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
-function dist(o,pts) {
+function distTotal(o,pts) {
   let d=0; for(let i=0;i<o.length-1;i++) d+=haversine(pts[o[i]].lat,pts[o[i]].lon,pts[o[i+1]].lat,pts[o[i+1]].lon); return d;
 }
 function tspNN(pts) {
@@ -586,17 +842,17 @@ function tspNN(pts) {
 }
 function twoOpt(o,pts){
   let b=o.slice(),imp=true;
-  while(imp){imp=false;for(let i=1;i<b.length-1;i++)for(let j=i+1;j<b.length;j++){const n=[...b.slice(0,i),...b.slice(i,j+1).reverse(),...b.slice(j+1)];if(dist(n,pts)<dist(b,pts)){b=n;imp=true;}}}
+  while(imp){imp=false;for(let i=1;i<b.length-1;i++)for(let j=i+1;j<b.length;j++){const n=[...b.slice(0,i),...b.slice(i,j+1).reverse(),...b.slice(j+1)];if(distTotal(n,pts)<distTotal(b,pts)){b=n;imp=true;}}}
   return b;
 }
 
 function optimize() {
   if (!addresses.length) { showToast('配達先を1件以上追加してください'); return; }
-  const depot = document.getElementById('depot').value.trim() || '出発地点';
-  const all = [{ name:'出発地点', addr: depot }, ...addresses];
+  const depotAddr = document.getElementById('depot').value.trim() || DEPOT;
+  const all = [{ name:'出発地点', addr: depotAddr }, ...addresses];
   const pts = all.map(a => pseudoGeo(a.addr));
   let order = tspNN(pts);
-  if (pts.length <= 12) order = twoOpt(order, pts);
+  if (pts.length <= 14) order = twoOpt(order, pts);
   optimizedRoute = order.map(i => all[i]);
 
   let d = 0;
@@ -604,8 +860,8 @@ function optimize() {
   d += haversine(pts[order[order.length-1]].lat,pts[order[order.length-1]].lon,pts[0].lat,pts[0].lon);
 
   document.getElementById('stat-count').textContent = addresses.length + '件';
-  document.getElementById('stat-dist').textContent = Math.round(d) + 'km';
-  document.getElementById('stat-time').textContent = Math.round(d/30*60) + '分';
+  document.getElementById('stat-dist').textContent  = Math.round(d) + 'km';
+  document.getElementById('stat-time').textContent  = Math.round(d/30*60) + '分';
 
   const full = [...optimizedRoute, optimizedRoute[0]];
   document.getElementById('route-list').innerHTML = full.map((a,i) => {
@@ -615,7 +871,7 @@ function optimize() {
       <div class="route-stop">
         <span class="route-badge ${dep?'badge-depot':'badge-stop'}">${lbl}</span>
         <div class="route-addr">
-          ${a.name && a.name !== '出発地点' ? `<span style="font-size:11px;color:var(--text-sub);display:block;">${a.name}</span>` : ''}
+          ${a.name && a.name!=='出発地点' ? `<span style="font-size:11px;color:var(--text-sub);display:block;">${a.name}</span>` : ''}
           ${a.addr}
         </div>
       </div>
@@ -633,18 +889,20 @@ function openInMaps() {
   window.open(`https://www.google.com/maps/dir/${enc.join('/')}`, '_blank');
 }
 
-// ────────── Toast ──────────
+// ────── Toast ──────
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.opacity = '1';
   clearTimeout(t._t); t._t = setTimeout(() => t.style.opacity='0', 1800);
 }
 
-// ────────── Key bindings ──────────
+// ────── Key bindings ──────
 document.getElementById('manual-addr').addEventListener('keydown', e => { if(e.key==='Enter') addManual(); });
 document.getElementById('ab-new-addr').addEventListener('keydown', e => { if(e.key==='Enter') saveToBook(); });
+document.getElementById('edit-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditModal(); });
 
 init();
 </script>
 </body>
 </html>
+
