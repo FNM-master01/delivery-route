@@ -234,6 +234,37 @@ input[type="file"]::file-selector-button {
 .csv-hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.6; }
 .divider { height: 1px; background: var(--border); margin: 12px 0; }
 
+/* Route status / operation helpers */
+.route-status-card {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 12px 14px; margin-bottom: 10px;
+}
+.route-status-main { font-size: 13px; font-weight: 700; }
+.route-status-sub { font-size: 11px; color: var(--text-sub); margin-top: 3px; line-height: 1.5; }
+.status-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 74px; padding: 6px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text-sub);
+}
+.status-pill.ready { color: var(--green); background: var(--green-dim); border-color: #1e4a30; }
+.status-pill.dirty { color: var(--accent); background: var(--accent-dim); border-color: #443a10; }
+.status-pill.empty { color: var(--text-sub); }
+.note {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 9px 11px; font-size: 11px;
+  color: var(--text-sub); line-height: 1.6; margin: 8px 0 10px;
+}
+.sel-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.done-toggle {
+  width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--green); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+}
+.sel-item.done { opacity: 0.62; }
+.sel-item.done .sel-text { text-decoration: line-through; color: var(--text-sub); }
+
 /* Edit modal */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
@@ -275,12 +306,20 @@ input[type="file"]::file-selector-button {
     <input id="depot" type="text" value="大阪府吹田市片山町３－３２－３" placeholder="出発地点の住所を入力...">
   </div>
 
+  <div class="route-status-card">
+    <div>
+      <div class="route-status-main" id="route-status-main">本日の配達先：0件</div>
+      <div class="route-status-sub" id="route-status-sub">配達先を追加してください</div>
+    </div>
+    <span class="status-pill empty" id="route-status-pill">未作成</span>
+  </div>
+
   <div class="card">
     <div class="card-title">配達先を追加</div>
     <div class="method-grid">
-      <button class="btn btn-green" onclick="toggleQR()">📷 QR</button>
-      <button class="btn" onclick="toggleManual()">✏️ 手動</button>
-      <button class="btn btn-blue" onclick="toggleBookPicker()">📋 住所帳</button>
+      <button class="btn btn-green" onclick="toggleQR()">📷 QRで追加</button>
+      <button class="btn" onclick="toggleManual()">✏️ 住所を入力</button>
+      <button class="btn btn-blue" onclick="toggleBookPicker()">📋 住所帳から選択</button>
     </div>
 
     <!-- QR scanner -->
@@ -317,6 +356,10 @@ input[type="file"]::file-selector-button {
       <div class="divider"></div>
     </div>
 
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-blue btn-full" onclick="loadLastRoute()">前回の配達先を追加</button>
+    </div>
+
     <!-- Selected addresses -->
     <div id="selected-list" class="selected-list"></div>
     <div id="no-selected" style="text-align:center;padding:16px 0;color:var(--text-dim);font-size:13px;">配達先がまだありません</div>
@@ -337,6 +380,7 @@ input[type="file"]::file-selector-button {
       <div class="card-title" style="margin-bottom:12px;">最適ルート順</div>
       <div id="route-list"></div>
     </div>
+    <div class="note">※距離・時間は住所文字列から作った目安です。実際の道路距離・所要時間はGoogle マップで確認してください。</div>
     <button class="btn btn-yellow btn-full" onclick="openInMaps()">Google マップで開く ↗</button>
   </div>
 </div>
@@ -417,6 +461,7 @@ let scanInterval   = null;
 let lastScanned    = '';
 let lastScannedTime = 0;
 let scanning       = false;
+let routeDirty     = false;
 
 // ────── Init ──────
 function init() {
@@ -427,6 +472,7 @@ function init() {
   renderBook();
   renderSettingsList();
   renderSelectedList();
+  updateRouteStatus();
   document.getElementById('csv-import').addEventListener('change', () => {});
 }
 
@@ -472,7 +518,8 @@ function extractAddress(text) {
 // ────── Route addresses ──────
 function addToRoute(name, addr) {
   if (addresses.find(a => a.addr === addr)) return false;
-  addresses.push({ name, addr });
+  addresses.push({ name, addr, done: false });
+  markRouteChanged();
   renderSelectedList();
   return true;
 }
@@ -488,33 +535,115 @@ function addManual() {
 
 function removeFromRoute(i) {
   addresses.splice(i, 1);
+  markRouteChanged();
   renderSelectedList();
 }
 
-function clearRoute() {
-  addresses = []; optimizedRoute = [];
+function moveRouteItem(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= addresses.length) return;
+  [addresses[i], addresses[j]] = [addresses[j], addresses[i]];
+  markRouteChanged();
   renderSelectedList();
+}
+
+function toggleDone(i) {
+  if (!addresses[i]) return;
+  addresses[i].done = !addresses[i].done;
+  renderSelectedList();
+  updateRouteStatus();
+}
+
+function clearRoute() {
+  if (!addresses.length) return;
+  if (!confirm('現在の配達先をすべて削除しますか？')) return;
+  addresses = []; optimizedRoute = [];
+  routeDirty = false;
+  renderSelectedList();
+  updateRouteStatus();
   document.getElementById('result-section').style.display = 'none';
 }
 
 function renderSelectedList() {
   const el    = document.getElementById('selected-list');
   const empty = document.getElementById('no-selected');
-  if (!addresses.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  if (!addresses.length) {
+    el.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('qr-count').textContent = '0件';
+    updateRouteStatus();
+    return;
+  }
   empty.style.display = 'none';
   el.innerHTML = addresses.map((a, i) => `
-    <div class="sel-item">
+    <div class="sel-item ${a.done ? 'done' : ''}">
+      <button class="done-toggle" title="配達完了チェック" onclick="toggleDone(${i})">${a.done ? '✓' : ''}</button>
       <span class="sel-num">${i+1}</span>
       <div class="sel-info">
         ${a.name ? `<div class="sel-name">${a.name}</div>` : ''}
         <div class="sel-text">${a.addr}</div>
       </div>
-      <button class="btn btn-red btn-sm" onclick="removeFromRoute(${i})">✕</button>
+      <div class="sel-actions">
+        <button class="btn btn-sm" onclick="moveRouteItem(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="btn btn-sm" onclick="moveRouteItem(${i},1)" ${i===addresses.length-1?'disabled':''}>↓</button>
+        <button class="btn btn-red btn-sm" onclick="removeFromRoute(${i})">✕</button>
+      </div>
     </div>
   `).join('');
-  // QRカウント更新
   document.getElementById('qr-count').textContent = addresses.length + '件';
+  updateRouteStatus();
 }
+
+function markRouteChanged() {
+  if (optimizedRoute.length) routeDirty = true;
+  document.getElementById('result-section').style.display = optimizedRoute.length && !routeDirty ? 'block' : 'none';
+  updateRouteStatus();
+}
+
+function updateRouteStatus() {
+  const main = document.getElementById('route-status-main');
+  const sub  = document.getElementById('route-status-sub');
+  const pill = document.getElementById('route-status-pill');
+  if (!main || !sub || !pill) return;
+  const done = addresses.filter(a => a.done).length;
+  main.textContent = `本日の配達先：${addresses.length}件${addresses.length ? `（完了 ${done}件）` : ''}`;
+  pill.className = 'status-pill';
+  if (!addresses.length) {
+    sub.textContent = '配達先を追加してください';
+    pill.classList.add('empty');
+    pill.textContent = '未作成';
+  } else if (routeDirty) {
+    sub.textContent = '配達先が変更されました。再計算してください。';
+    pill.classList.add('dirty');
+    pill.textContent = '要再計算';
+  } else if (optimizedRoute.length) {
+    sub.textContent = 'ルート計算済みです。Google マップで開けます。';
+    pill.classList.add('ready');
+    pill.textContent = '計算済み';
+  } else {
+    sub.textContent = 'まだルート計算していません。';
+    pill.classList.add('dirty');
+    pill.textContent = '未計算';
+  }
+}
+
+function saveLastRoute() {
+  localStorage.setItem('lastDeliveryRoute_v1', JSON.stringify(addresses));
+}
+
+function loadLastRoute() {
+  const saved = localStorage.getItem('lastDeliveryRoute_v1');
+  if (!saved) { showToast('前回の配達先がありません'); return; }
+  let last = [];
+  try { last = JSON.parse(saved); } catch(e) { last = []; }
+  if (!last.length) { showToast('前回の配達先がありません'); return; }
+  let added = 0;
+  last.forEach(a => {
+    if (a && a.addr && addToRoute(a.name || '', a.addr)) added++;
+  });
+  showToast(`${added}件を追加しました`);
+}
+
 
 // ────── Manual / QR toggles ──────
 function toggleManual() {
@@ -896,6 +1025,9 @@ function optimize() {
   let order = tspNN(pts);
   if (pts.length <= 14) order = twoOpt(order, pts);
   optimizedRoute = order.map(i => all[i]);
+  routeDirty = false;
+  saveLastRoute();
+  updateRouteStatus();
 
   let d = 0;
   for(let i=0;i<order.length-1;i++) d+=haversine(pts[order[i]].lat,pts[order[i]].lon,pts[order[i+1]].lat,pts[order[i+1]].lon);
@@ -927,7 +1059,10 @@ function optimize() {
 
 function openInMaps() {
   if (!optimizedRoute.length) return;
-  const enc = optimizedRoute.map(a => encodeURIComponent(a.addr));
+  const full = [...optimizedRoute, optimizedRoute[0]];
+  const preview = full.map((a, i) => `${i+1}. ${a.name && a.name !== '出発地点' ? a.name + ' / ' : ''}${a.addr}`).join('\n');
+  if (!confirm('この順番でGoogle マップを開きます。\n\n' + preview)) return;
+  const enc = full.map(a => encodeURIComponent(a.addr));
   window.open(`https://www.google.com/maps/dir/${enc.join('/')}`, '_blank');
 }
 
@@ -939,6 +1074,7 @@ function showToast(msg) {
 }
 
 // ────── Key bindings ──────
+document.getElementById('depot').addEventListener('input', () => { if (addresses.length) markRouteChanged(); });
 document.getElementById('manual-addr').addEventListener('keydown', e => { if(e.key==='Enter') addManual(); });
 document.getElementById('ab-new-addr').addEventListener('keydown', e => { if(e.key==='Enter') saveToBook(); });
 document.getElementById('edit-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditModal(); });
@@ -947,4 +1083,3 @@ init();
 </script>
 </body>
 </html>
-
